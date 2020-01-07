@@ -1,5 +1,6 @@
 import { Schema, model } from "mongoose";
-const articleSchema = new Schema({
+
+export const articleSchema = new Schema({
   nr: String,
   Artikelid: String,
   Varnummer: String,

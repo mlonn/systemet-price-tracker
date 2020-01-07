@@ -4,20 +4,18 @@ import { Parser } from "xml2js";
 import mongoose from "mongoose";
 import ArticleCollection from "./articleSchema";
 import SubscriberCollection from "./subsribersSchema";
+import ChangeCollection from "./changesSchema";
 import nodemailer from "nodemailer";
 import { pre, row, post } from "./html";
-import express from "express";
-import keepAlive from "./keepAlive";
+import schedule from "node-schedule";
 
 const xmlurl = "https://www.systembolaget.se/api/assortment/products/xml";
 
 const getXML = async () => {
-  console.log("Getting XML");
   const response = await axios.get(xmlurl);
   const xml: string = response.data;
   const parser = new Parser({ explicitArray: false });
   const result = await parser.parseStringPromise(xml);
-  console.log("Done getting XML");
   return result.artiklar.artikel;
 };
 const checkArticle = async article => {
@@ -36,8 +34,7 @@ const checkArticle = async article => {
     return null;
   }
 };
-const updateDatabase = async () => {
-  const newArticles = await getXML();
+const updateDatabase = async newArticles => {
   const promises = [];
   for (const article of newArticles) {
     promises.push(checkArticle(article));
@@ -81,29 +78,36 @@ const sendEmail = async changes => {
   }
 };
 
-const init = async () => {
+const run = async () => {
   mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
   });
-  const changes = await updateDatabase();
+  console.log("Getting XML");
+  const newArticles = await getXML();
+  console.log("Done getting XML");
+  console.log("Checking for changes");
+  const changes = await updateDatabase(newArticles);
+  console.log(`Done checking for changes, found ${changes.length}`);
+
   if (changes.length > 0) {
+    const changeDocument = new ChangeCollection({
+      id: getDateString(new Date()),
+      changes
+    });
+    changeDocument.save();
     sendEmail(changes);
   }
 };
-
-const webserver = express();
-webserver.use(express.json());
-webserver.use(express.urlencoded({ extended: false }));
-webserver.get("/", (req, res) => res.send("Alive"));
-webserver.set("port", process.env.PORT || 3000);
-webserver.listen(webserver.get("port"), () =>
-  console.log(`Example app listening on port ${webserver.get("port")}!`)
-);
-webserver.set(
-  "url",
-  process.env.APP_URL || "localhost:" + webserver.get("port")
-);
-keepAlive(webserver);
+const getDateString = date => {
+  const year = date.getFullYear();
+  let month = date.getMonth() + 1;
+  let day = date.getDate();
+  day = day < 10 ? `0${day}` : day;
+  month = month < 10 ? `0${month}` : month;
+  return `${year}-${month}-${day}`;
+};
+schedule.scheduleJob("0 8 * * *", async err => {
+  run();
+});
 dotenv.config();
-init();
