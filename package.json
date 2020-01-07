@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.ts",
   "scripts": {
-    "start": "nodemon --exec babel-node src/index.ts --extensions \".ts\""
+    "dev": "nodemon --exec babel-node src/index.ts --extensions \".ts\"",
+    "start": "babel-node src/index.ts --extensions \".ts\""
   },
   "author": "",
   "license": "ISC",
