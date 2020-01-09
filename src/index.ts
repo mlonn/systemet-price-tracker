@@ -61,6 +61,7 @@ const sendEmail = async changes => {
   }
   html = html + post;
   for (const subscriber of subscribers) {
+    console.log(`Sending email to ${subscriber.email}`);
     const message = {
       from: process.env.SEND_EMAIL,
       to: subscriber.email,
@@ -71,7 +72,6 @@ const sendEmail = async changes => {
       if (error) {
         console.log(error);
       } else {
-        console.log("Sending email");
         transporter.sendMail(message);
       }
     });
@@ -90,14 +90,19 @@ const run = async () => {
   const changes = await updateDatabase(newArticles);
   console.log(`Done checking for changes, found ${changes.length}`);
 
-  if (changes.length > 0) {
+  if (changes.length == 0) {
     const changeDocument = new ChangeCollection({
       id: getDateString(new Date()),
       changes
     });
-    changeDocument.save();
-    sendEmail(changes);
+    await changeDocument.save();
+
+    console.log("Sending email");
+    // await sendEmail(changes);
+    console.log("Done sending email");
   }
+
+  mongoose.connection.close();
 };
 const getDateString = date => {
   const year = date.getFullYear();
@@ -107,7 +112,6 @@ const getDateString = date => {
   month = month < 10 ? `0${month}` : month;
   return `${year}-${month}-${day}`;
 };
-schedule.scheduleJob("0 8 * * *", async err => {
-  run();
-});
+console.log(new Date());
 dotenv.config();
+run();
