@@ -1,3 +1,5 @@
+import { IArticle } from "./types";
+
 export const pre = `
     <table border="0" cellpadding="0" cellspacing="0" width="100%">
       <tbody>
@@ -72,7 +74,7 @@ export const pre = `
                         </tr>
 `;
 
-export const row = (old, update) => `<tr>
+export const row = (old: IArticle, update: IArticle) => `<tr>
 <td>
   <a
     href="https://systembolaget.se/${update.nr}"
@@ -101,9 +103,9 @@ export const row = (old, update) => `<tr>
     <span
       style="min-width: 54px;display: inline-block;"
       >${
-        old.Prisinklmoms % 1 === 0
-          ? Math.round(old.Prisinklmoms)
-          : old.Prisinklmoms
+        parseFloat(old.Prisinklmoms) % 1 === 0
+          ? Math.round(parseFloat(old.Prisinklmoms))
+          : parseInt(old.Prisinklmoms)
       } kr</span
     >
   </a>
@@ -121,9 +123,9 @@ export const row = (old, update) => `<tr>
     <span
       style="min-width: 54px;display: inline-block;"
       >${
-        update.Prisinklmoms % 1 === 0
-          ? Math.round(update.Prisinklmoms)
-          : update.Prisinklmoms
+        parseFloat(update.Prisinklmoms) % 1 === 0
+          ? Math.round(parseFloat(update.Prisinklmoms))
+          : parseInt(update.Prisinklmoms)
       } kr</span
     >
   </a>
@@ -140,7 +142,7 @@ export const row = (old, update) => `<tr>
   >
     <span
       style="min-width: 54px;display: inline-block;"
-      >${Math.round(update.Volymiml)} ml</span
+      >${Math.round(parseFloat(update.Volymiml))} ml</span
     >
   </a>
 </td>

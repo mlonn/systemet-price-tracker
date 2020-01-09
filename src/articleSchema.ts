@@ -1,4 +1,5 @@
 import { Schema, model } from "mongoose";
+import { IArticle } from "./types";
 
 export const articleSchema = new Schema({
   nr: String,
@@ -31,4 +32,4 @@ export const articleSchema = new Schema({
   RavarorBeskrivning: String
 });
 
-export default model("Article", articleSchema);
+export default model<IArticle>("Article", articleSchema);
