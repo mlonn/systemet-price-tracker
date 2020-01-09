@@ -5,10 +5,7 @@
   "main": "index.ts",
   "scripts": {
     "dev": "nodemon --exec babel-node src/index.ts --extensions \".ts\"",
-    "start": "babel-node src/index.ts --extensions \".ts\"",
-    "clean": "rm -rf build && mkdir build",
-    "build-babel": "babel -d ./build ./src -s --minify --no-comments --extensions \".ts\"",
-    "build": "npm run clean && npm run build-babel"
+    "start": "babel-node src/index.ts --extensions \".ts\""
   },
   "author": "",
   "license": "ISC",
