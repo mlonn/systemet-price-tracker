@@ -18,28 +18,37 @@ const getXML = async () => {
   const result = await parser.parseStringPromise(xml);
   return result.artiklar.artikel;
 };
-const checkArticle = async (article: IArticle) => {
-  const found = await ArticleCollection.findOne({ nr: article.nr });
-  ArticleCollection.updateOne(
-    { nr: article.nr },
-    { $set: article },
-    { upsert: true },
-    err => {
-      if (err) console.log(err);
-    }
-  );
-  if (found && article.Prisinklmoms < found.Prisinklmoms) {
-    const change: IChange = { old: found, update: article };
-    return change;
-  }
-};
+
 const updateDatabase = async (newArticles: IArticle[]) => {
-  const promises = [];
+  const pricechanges = [];
+  let oldArticles = await ArticleCollection.find();
+  oldArticles = oldArticles.sort((a, b) => parseInt(a.nr) - parseInt(b.nr));
+  newArticles = newArticles.sort((a, b) => parseInt(a.nr) - parseInt(b.nr));
   for (const article of newArticles) {
-    promises.push(checkArticle(article));
+    let found;
+    while (true) {
+      const current = oldArticles.shift();
+      if (oldArticles.length === 0) {
+        break;
+      } else if (current && current.nr === article.nr) {
+        found = current;
+        break;
+      }
+    }
+    if (found && article.Prisinklmoms < found.Prisinklmoms) {
+      const change: IChange = { old: found, update: article };
+      ArticleCollection.updateOne(
+        { nr: article.nr },
+        { $set: article },
+        { upsert: true },
+        err => {
+          if (err) console.log(err);
+        }
+      );
+      pricechanges.push(change);
+    }
   }
-  const pricechanges = await Promise.all(promises);
-  return pricechanges.filter(change => change !== undefined);
+  return pricechanges;
 };
 const sendEmail = async (changes: (IChange | undefined)[]) => {
   const subscribers = await SubscriberCollection.find({});
@@ -99,7 +108,7 @@ const run = async () => {
   const changes = await updateDatabase(newArticles);
   console.log(`Done checking for changes, found ${changes.length}`);
 
-  if (changes.length < 0) {
+  if (changes.length > 0) {
     await saveChanges(changes);
     console.log("Sending email");
     await sendEmail(changes);
