@@ -2,14 +2,19 @@ import axios from "axios";
 import dotenv from "dotenv";
 import { Parser } from "xml2js";
 import mongoose from "mongoose";
-import ArticleCollection from "./articleSchema";
-import SubscriberCollection from "./subsribersSchema";
-import ChangeCollection from "./changesSchema";
+import ArticleCollection from "./schemas/articleSchema";
+import SubscriberCollection from "./schemas/subsribersSchema";
+import ChangeCollection from "./schemas/changesSchema";
+import RemovedCollection from "./schemas/removedSchema";
+import AddedCollection from "./schemas/addedSchema";
 import nodemailer from "nodemailer";
 import { pre, row, post } from "./html";
 import { IChange, IArticle } from "./types";
 
 const xmlurl = "https://www.systembolaget.se/api/assortment/products/xml";
+
+const removed: IArticle[] = [];
+const added: IArticle[] = [];
 
 const getXML = async () => {
   const response = await axios.get(xmlurl);
@@ -20,24 +25,20 @@ const getXML = async () => {
 };
 
 const findOldArticle = async (oldArticles: IArticle[], article: IArticle) => {
-  while (true) {
-    if (oldArticles.length === 0) {
-      break;
-    }
-    const current = oldArticles[0];
+  for (const current of oldArticles) {
     const currentNr = parseInt(current.nr);
     const articleNr = parseInt(article.nr);
     if (current.nr === article.nr) {
       oldArticles.shift();
       return current;
     } else if (currentNr < articleNr) {
-      console.log(`Searching for ${article.nr} but found ${current.nr}`);
       console.log(`Removing old article with nr ${current.nr}`);
       await ArticleCollection.deleteOne({ nr: current.nr });
+      removed.push(current);
       oldArticles.shift();
     } else if (currentNr > articleNr) {
-      console.log(`Searching for ${article.nr} but found ${current.nr}`);
       console.log(`Adding new article with nr ${article.nr}`);
+      added.push(article);
       await ArticleCollection.updateOne(
         { nr: article.nr },
         { $set: article },
@@ -46,7 +47,7 @@ const findOldArticle = async (oldArticles: IArticle[], article: IArticle) => {
           if (err) console.log(err);
         }
       );
-      break;
+      return null;
     }
   }
 };
@@ -109,13 +110,29 @@ const sendEmail = async (changes: (IChange | undefined)[]) => {
     });
   }
 };
-const saveChanges = async (changes: (IChange | undefined)[]) => {
+const saveChanges = async (changes: IChange[]) => {
   const changeDocument = new ChangeCollection({
     id: getDateString(new Date()),
     changes
   });
   await changeDocument.save();
 };
+const saveAdded = async () => {
+  const addedDocument = new AddedCollection({
+    id: getDateString(new Date()),
+    added
+  });
+  await addedDocument.save();
+};
+
+const saveRemoved = async () => {
+  const removedDocument = new RemovedCollection({
+    id: getDateString(new Date()),
+    removed
+  });
+  await removedDocument.save();
+};
+
 const run = async () => {
   if (process.env.MONGODB_URI)
     mongoose.connect(process.env.MONGODB_URI, {
@@ -125,16 +142,24 @@ const run = async () => {
   console.log("Getting XML");
   const newArticles = await getXML();
   console.log("Done getting XML");
-
+  console.log("---");
   console.log("Checking for changes");
   const changes = await updateDatabase(newArticles);
-  console.log(`Done checking for changes, found ${changes.length}`);
-
+  console.log(`Done checking for changes, found ${changes.length} changes`);
+  console.log("---");
+  console.log(`Found ${added.length} new articles`);
+  console.log(`Removed ${removed.length} articles`);
   if (changes.length > 0) {
     await saveChanges(changes);
     console.log("Sending email");
     await sendEmail(changes);
     console.log("Done sending email");
+  }
+  if (added.length > 0) {
+    await saveAdded();
+  }
+  if (removed.length > 0) {
+    await saveRemoved();
   }
   mongoose.connection.close();
 };

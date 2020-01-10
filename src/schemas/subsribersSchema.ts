@@ -1,5 +1,5 @@
 import { Schema, model } from "mongoose";
-import { ISubscriber } from "./types";
+import { ISubscriber } from "../types";
 
 const subscriberSchema = new Schema({
   email: String,

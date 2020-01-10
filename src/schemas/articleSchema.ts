@@ -1,5 +1,5 @@
 import { Schema, model } from "mongoose";
-import { IArticle } from "./types";
+import { IArticle } from "../types";
 
 export const articleSchema = new Schema({
   nr: String,
