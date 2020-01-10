@@ -19,25 +19,50 @@ const getXML = async () => {
   return result.artiklar.artikel;
 };
 
+const findOldArticle = async (oldArticles: IArticle[], article: IArticle) => {
+  while (true) {
+    if (oldArticles.length === 0) {
+      break;
+    }
+    const current = oldArticles[0];
+    const currentNr = parseInt(current.nr);
+    const articleNr = parseInt(article.nr);
+    if (current.nr === article.nr) {
+      oldArticles.shift();
+      return current;
+    } else if (currentNr < articleNr) {
+      console.log(`Searching for ${article.nr} but found ${current.nr}`);
+      console.log(`Removing old article with nr ${current.nr}`);
+      await ArticleCollection.deleteOne({ nr: current.nr });
+      oldArticles.shift();
+    } else if (currentNr > articleNr) {
+      console.log(`Searching for ${article.nr} but found ${current.nr}`);
+      console.log(`Adding new article with nr ${article.nr}`);
+      await ArticleCollection.updateOne(
+        { nr: article.nr },
+        { $set: article },
+        { upsert: true },
+        err => {
+          if (err) console.log(err);
+        }
+      );
+      break;
+    }
+  }
+};
 const updateDatabase = async (newArticles: IArticle[]) => {
   const pricechanges = [];
   let oldArticles = await ArticleCollection.find();
   oldArticles = oldArticles.sort((a, b) => parseInt(a.nr) - parseInt(b.nr));
   newArticles = newArticles.sort((a, b) => parseInt(a.nr) - parseInt(b.nr));
+
+  console.log(oldArticles.length, oldArticles[0].nr);
+  console.log(newArticles.length, newArticles[0].nr);
   for (const article of newArticles) {
-    let found;
-    while (true) {
-      const current = oldArticles.shift();
-      if (oldArticles.length === 0) {
-        break;
-      } else if (current && current.nr === article.nr) {
-        found = current;
-        break;
-      }
-    }
+    const found = await findOldArticle(oldArticles, article);
     if (found && article.Prisinklmoms < found.Prisinklmoms) {
       const change: IChange = { old: found, update: article };
-      ArticleCollection.updateOne(
+      await ArticleCollection.updateOne(
         { nr: article.nr },
         { $set: article },
         { upsert: true },
