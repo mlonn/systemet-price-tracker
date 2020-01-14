@@ -56,6 +56,8 @@ const updateDatabase = async (newArticles: IArticle[]) => {
   let oldArticles = await ArticleCollection.find();
   oldArticles = oldArticles.sort((a, b) => parseInt(a.nr) - parseInt(b.nr));
   newArticles = newArticles.sort((a, b) => parseInt(a.nr) - parseInt(b.nr));
+  console.log(`Found ${oldArticles.length} old articles`);
+  console.log(`Found ${newArticles.length} current articles`);
   for (const article of newArticles) {
     const found = await findOldArticle(oldArticles, article);
     if (found && article.Prisinklmoms < found.Prisinklmoms) {
