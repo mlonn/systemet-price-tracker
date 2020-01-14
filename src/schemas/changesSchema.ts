@@ -7,7 +7,7 @@ const change = {
 };
 
 const changeSchema = new Schema({
-  id: String,
+  _id: String,
   changes: [change]
 });
 

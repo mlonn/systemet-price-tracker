@@ -24,32 +24,32 @@ const getXML = async () => {
   return result.artiklar.artikel;
 };
 
-const findOldArticle = async (oldArticles: IArticle[], article: IArticle) => {
-  for (const current of oldArticles) {
-    const currentNr = parseInt(current.nr);
-    const articleNr = parseInt(article.nr);
-    if (current.nr === article.nr) {
-      oldArticles.shift();
-      return current;
-    } else if (currentNr < articleNr) {
-      console.log(`Removing old article with nr ${current.nr}`);
-      await ArticleCollection.deleteOne({ nr: current.nr });
-      removed.push(current);
-      oldArticles.shift();
-    } else if (currentNr > articleNr) {
-      console.log(`Adding new article with nr ${article.nr}`);
-      added.push(article);
-      await ArticleCollection.updateOne(
-        { nr: article.nr },
-        { $set: article },
-        { upsert: true },
-        err => {
-          if (err) console.log(err);
-        }
-      );
-      return null;
-    }
+const findOldArticle = async (
+  oldArticles: IArticle[],
+  article: IArticle
+): Promise<IArticle | undefined> => {
+  const current = oldArticles[0];
+  const currentNr = parseInt(current.nr);
+  const articleNr = parseInt(article.nr);
+  if (current.nr === article.nr) {
+    oldArticles.shift();
+    return current;
+  } else if (currentNr < articleNr) {
+    console.log(`Removing old article with nr ${current.nr}`);
+    await ArticleCollection.deleteOne({ nr: current.nr });
+    removed.push(current);
+    oldArticles.shift();
+    return findOldArticle(oldArticles, article);
   }
+  added.push(article);
+  await ArticleCollection.updateOne(
+    { nr: article.nr },
+    { $set: article },
+    { upsert: true },
+    err => {
+      if (err) console.log(err);
+    }
+  );
 };
 const updateDatabase = async (newArticles: IArticle[]) => {
   const pricechanges = [];
@@ -114,14 +114,14 @@ const sendEmail = async (changes: (IChange | undefined)[]) => {
 };
 const saveChanges = async (changes: IChange[]) => {
   const changeDocument = new ChangeCollection({
-    id: getDateString(new Date()),
+    _id: getDateString(new Date()),
     changes
   });
   await changeDocument.save();
 };
 const saveAdded = async () => {
   const addedDocument = new AddedCollection({
-    id: getDateString(new Date()),
+    _id: getDateString(new Date()),
     added
   });
   await addedDocument.save();
@@ -129,7 +129,7 @@ const saveAdded = async () => {
 
 const saveRemoved = async () => {
   const removedDocument = new RemovedCollection({
-    id: getDateString(new Date()),
+    _id: getDateString(new Date()),
     removed
   });
   await removedDocument.save();

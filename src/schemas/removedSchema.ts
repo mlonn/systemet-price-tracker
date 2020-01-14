@@ -2,7 +2,7 @@ import { Schema, model } from "mongoose";
 import { articleSchema } from "./articleSchema";
 
 const removedSchema = new Schema({
-  id: String,
+  _id: String,
   removed: [articleSchema]
 });
 
