@@ -28,7 +28,7 @@ const findOldArticle = async (
   oldArticles: IArticle[],
   article: IArticle
 ): Promise<IArticle | undefined> => {
-  const current = oldArticles[0];
+  const [current] = oldArticles;
   if (current) {
     const currentNr = parseInt(current.nr);
     const articleNr = parseInt(article.nr);
