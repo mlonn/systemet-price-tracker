@@ -44,8 +44,8 @@ const findOldArticle = async (
     }
   }
   added.push(article);
-  await ArticleCollection.updateOne(
-    { nr: article.nr },
+  ArticleCollection.updateOne(
+    {_id: article.nr}
     { $set: article },
     { upsert: true },
     err => {
@@ -65,7 +65,7 @@ const updateDatabase = async (newArticles: IArticle[]) => {
     if (found && article.Prisinklmoms < found.Prisinklmoms) {
       const change: IChange = { old: found, update: article };
       await ArticleCollection.updateOne(
-        { nr: article.nr },
+        {_id: article.nr},
         { $set: article },
         { upsert: true },
         err => {

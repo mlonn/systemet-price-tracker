@@ -2,6 +2,7 @@ import { Schema, model } from "mongoose";
 import { IArticle } from "../types";
 
 export const articleSchema = new Schema({
+  _id: String,
   nr: String,
   Artikelid: String,
   Varnummer: String,
