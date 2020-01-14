@@ -29,17 +29,19 @@ const findOldArticle = async (
   article: IArticle
 ): Promise<IArticle | undefined> => {
   const current = oldArticles[0];
-  const currentNr = parseInt(current.nr);
-  const articleNr = parseInt(article.nr);
-  if (current.nr === article.nr) {
-    oldArticles.shift();
-    return current;
-  } else if (currentNr < articleNr) {
-    console.log(`Removing old article with nr ${current.nr}`);
-    await ArticleCollection.deleteOne({ nr: current.nr });
-    removed.push(current);
-    oldArticles.shift();
-    return findOldArticle(oldArticles, article);
+  if (current) {
+    const currentNr = parseInt(current.nr);
+    const articleNr = parseInt(article.nr);
+    if (current.nr === article.nr) {
+      oldArticles.shift();
+      return current;
+    } else if (currentNr < articleNr) {
+      console.log(`Removing old article with nr ${current.nr}`);
+      await ArticleCollection.deleteOne({ nr: current.nr });
+      removed.push(current);
+      oldArticles.shift();
+      return findOldArticle(oldArticles, article);
+    }
   }
   added.push(article);
   await ArticleCollection.updateOne(
